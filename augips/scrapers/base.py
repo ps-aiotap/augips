@@ -3,8 +3,25 @@ Base scraper class for Augips framework
 """
 
 from abc import ABC, abstractmethod
+import os
+import sys
+import traceback
 import pandas as pd
 from typing import List, Dict, Any, Optional
+
+# Import debug utilities if available
+try:
+    from ..utils import debug_print
+except ImportError:
+    # Fallback if debug_print is not available
+    def debug_print(message, obj=None, error=None):
+        print(f"[DEBUG] {message}")
+        if obj is not None:
+            print(f"[DEBUG] {obj}")
+        if error is not None:
+            print(f"[DEBUG] Error: {str(error)}")
+            print(f"[DEBUG] Error type: {type(error)}")
+            traceback.print_exc(file=sys.stdout)
 
 
 class Scraper(ABC):
@@ -56,6 +73,20 @@ class Scraper(ABC):
     def run(self) -> None:
         """Run the scraper and save results"""
         print(f"Scraping {self.company_name} store locations...")
-        data = self.scrape()
-        self.save_to_csv(data)
-        print(f"Finished scraping {self.company_name}")
+        try:
+            # Ensure data directory exists
+            os.makedirs("data", exist_ok=True)
+            
+            # Run the scraper
+            debug_print(f"Starting scraper for {self.company_name}")
+            data = self.scrape()
+            debug_print(f"Scraper returned {len(data)} locations")
+            
+            # Save the results
+            self.save_to_csv(data)
+            print(f"Finished scraping {self.company_name}")
+            return data
+        except Exception as e:
+            debug_print(f"Error running scraper for {self.company_name}", error=e)
+            print(f"Error: {str(e)}")
+            return []
